@@ -8,13 +8,12 @@ from multiprocessing import Process
 from scapy.all import *
 
 interface='' # monitor interface
-aps = {} # dictionary to store unique APs
+aps = {}  # dictionary to store unique APs
 
 # process unique sniffed Beacons and ProbeResponses. 
 def sniffAP(p):
     if ( (p.haslayer(Dot11Beacon) or p.haslayer(Dot11ProbeResp)) 
-                 gs
-
+                 and p[Dot11].addr3 not in aps):
         ssid       = p[Dot11Elt].info
         bssid      = p[Dot11].addr3    
         channel    = int( ord(p[Dot11Elt:3].info))
@@ -29,13 +28,13 @@ def sniffAP(p):
         aps[p[Dot11].addr3] = enc
 
         # Display discovered AP    
-        print "%02d  %s  %s %s" % (int(channel), enc, bssid, ssid) 
+        print("{:>2d}  {:s}  {:s} {:s}".format(int(channel), enc, bssid, ssid.decode('UTF-8')))
 
 # Channel hopper
 def channel_hopper():
     while True:
         try:
-            channel = random.randrange(1,15)
+            channel = random.randrange(1,13)
             os.system("iw dev %s set channel %d" % (interface, channel))
             time.sleep(1)
         except KeyboardInterrupt:
@@ -46,23 +45,23 @@ def signal_handler(signal, frame):
     p.terminate()
     p.join()
 
-    print "\n-=-=-=-=-=  STATISTICS =-=-=-=-=-=-"
-    print "Total APs found: %d" % len(aps)
-    print "Encrypted APs  : %d" % len([ap for ap in aps if aps[ap] =='Y'])
-    print "Unencrypted APs: %d" % len([ap for ap in aps if aps[ap] =='N'])
+    print("\n-=-=-=-=-=  STATISTICS =-=-=-=-=-=-")
+    print("Total APs found: {:d}".format(len(aps)))
+    print("Encrypted APs  : {:d}".format(len([ap for ap in aps if aps[ap] =='Y'])) )
+    print("Unencrypted APs: {:d}".format(len([ap for ap in aps if aps[ap] =='N'])))
 
     sys.exit(0)
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print "Usage %s monitor_interface" % sys.argv[0]
+        print("Usage %s monitor_interface".format(sys.argv[0]))
         sys.exit(1)
 
     interface = sys.argv[1]
 
     # Print the program header
-    print "-=-=-=-=-=-= AIROSCAPY =-=-=-=-=-=-"
-    print "CH ENC BSSID             SSID"
+    print("-=-=-=-=-=-= AIROSCAPY =-=-=-=-=-=-")
+    print("CH ENC BSSID             SSID")
 
     # Start the channel hopper
     p = Process(target = channel_hopper)
