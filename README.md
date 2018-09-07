@@ -40,6 +40,20 @@ https://gist.github.com/securitytube/5291959
     * Needed to `sudo apt-get install python3-setuptools` then re-run pip install
 * Got everything working in Kali.
 
+Get Kali working:
+```bash
+sudo apt install python3-pip
+sudo pip3 install virtualenv
+virtualenv --python python3 watchtower-venv3
+source watchtower-venv3/bin/activate
+```
+then
+```bash
+airmon-ng check kill
+airmon-ng start wlan0
+python3 ./sniff.py wlan0mon
+```
+
 ## Sources notes
 
 * Deauth frames are not protected in 802.11i but are encrypted in 802.11w after the 4-way handshake.
