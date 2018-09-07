@@ -4,7 +4,6 @@
 
 from scapy.all import *
 import sys
-import json
 
 aps = set()
 
@@ -21,8 +20,5 @@ def findAPs(p):
 if len(sys.argv) < 2:
     print("usage: sniff.py <interface>")
     sys.exit(-1)
-
-with open('config.json') as f:
-    config = json.load(f)
 
 sniff(iface=sys.argv[1], prn=findAPs)
