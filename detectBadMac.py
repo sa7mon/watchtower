@@ -28,13 +28,13 @@ def sniffAP(p):
         aps[p[Dot11].addr3] = enc
 
         # Display discovered AP    
-        print("{:d}  {:s}  {:s} {:s}".format(int(channel), enc, bssid, ssid.decode('UTF-8')))
+        print("{:>2d}  {:s}  {:s} {:s}".format(int(channel), enc, bssid, ssid.decode('UTF-8')))
 
 # Channel hopper
 def channel_hopper():
     while True:
         try:
-            channel = random.randrange(1,15)
+            channel = random.randrange(1,13)
             os.system("iw dev %s set channel %d" % (interface, channel))
             time.sleep(1)
         except KeyboardInterrupt:
