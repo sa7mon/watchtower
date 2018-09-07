@@ -8,12 +8,12 @@ from multiprocessing import Process
 from scapy.all import *
 
 interface='' # monitor interface
-aps = {} # dictionary to store unique APs
+aps = {}  # dictionary to store unique APs
 
 # process unique sniffed Beacons and ProbeResponses. 
 def sniffAP(p):
     if ( (p.haslayer(Dot11Beacon) or p.haslayer(Dot11ProbeResp)) 
-                 and not aps.has_key(p[Dot11].addr3)):
+                 and p[Dot11].addr3 not in aps):
         ssid       = p[Dot11Elt].info
         bssid      = p[Dot11].addr3    
         channel    = int( ord(p[Dot11Elt:3].info))
@@ -28,7 +28,7 @@ def sniffAP(p):
         aps[p[Dot11].addr3] = enc
 
         # Display discovered AP    
-        print("%02d  %s  %s %s".format(int(channel), enc, bssid, ssid))
+        print("{:d}  {:s}  {:s} {:s}".format(int(channel), enc, bssid, ssid.decode('UTF-8')))
 
 # Channel hopper
 def channel_hopper():
@@ -46,9 +46,9 @@ def signal_handler(signal, frame):
     p.join()
 
     print("\n-=-=-=-=-=  STATISTICS =-=-=-=-=-=-")
-    print("Total APs found: %d".format(len(aps)))
-    print("Encrypted APs  : %d".format(len([ap for ap in aps if aps[ap] =='Y'])) )
-    print("Unencrypted APs: %d".format(len([ap for ap in aps if aps[ap] =='N'])))
+    print("Total APs found: {:d}".format(len(aps)))
+    print("Encrypted APs  : {:d}".format(len([ap for ap in aps if aps[ap] =='Y'])) )
+    print("Unencrypted APs: {:d}".format(len([ap for ap in aps if aps[ap] =='N'])))
 
     sys.exit(0)
 
