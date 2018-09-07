@@ -9,6 +9,7 @@ import json
 ssids = set()
 
 def findAPs(p):
+    p.show()
     if p.haslayer(Dot11) and p.type == 0 and p.subtype == 0x08 and hasattr(p, 'info'):
         ssid = ( len(p.info) > 0 and p.info != "\x00" ) and p.info or '<hidden>'
         if type(ssid) == bytes:
