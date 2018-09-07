@@ -6,16 +6,25 @@ from scapy.all import *
 import sys
 import json
 
-aps = set()
-
+ssids = set()
 
 def findAPs(p):
     if p.haslayer(Dot11) and p.type == 0 and p.subtype == 0x08 and hasattr(p, 'info'):
         ssid = ( len(p.info) > 0 and p.info != "\x00" ) and p.info or '<hidden>'
+        if type(ssid) == bytes:
+            ssid = ssid.decode('UTF-8')
+        # ssid is now definitely a string
+
         mac = p.addr2
-        if mac not in aps:
-            aps.add(mac)
-            print('SSID: ' + str(ssid) + ', MAC: ' + str(mac))
+        if ssid not in ssids:
+            print("New SSID: " + ssid)
+            ssids.add(ssid)
+
+        if ssid == config['ssid']:
+            if mac not in config['macs']:
+                print('SSID: ' + str(ssid) + ', BAD MAC: ' + str(mac))
+            else:
+                print('SSID: ' + str(ssid) + ', GOOD MAC: ' + str(mac))
 
 
 if len(sys.argv) < 2:
@@ -25,4 +34,4 @@ if len(sys.argv) < 2:
 with open('config.json') as f:
     config = json.load(f)
 
-sniff(iface=sys.argv[1], prn=findAPs)
+sniff(iface=sys.argv[1], prn=findAPs, store=0)
