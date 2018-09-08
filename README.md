@@ -54,6 +54,13 @@ airmon-ng start wlan0
 python3 ./sniff.py wlan0mon
 ```
 
+**Attempting to build hostapd on MacOS**
+* Clone repo
+```bash
+cp defconfig .config
+make
+```
+* Error'd out immediately not being able to find 'netpacket/packet.h'
 ## Sources notes
 
 * Deauth frames are not protected in 802.11i but are encrypted in 802.11w after the 4-way handshake.

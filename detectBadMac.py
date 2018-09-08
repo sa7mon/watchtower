@@ -25,18 +25,24 @@ def sniffAP(p):
         else:
             enc = 'N'
 
-        # Save discovered AP
-        aps[p[Dot11].addr3] = enc
+
 
         # Display discovered AP
         # print("{:>2d}  {:s}  {:s} {:s}".format(int(channel), enc, bssid, ssid))
 
-        print(str(len(aps)), " unique APs found")
+        # print(str(len(aps)), " unique APs found")
         if ssid == config['ssid']:
+
+            # Save discovered AP
+            aps[p[Dot11].addr3] = enc
+
             if bssid not in config['macs']:
-                print('SSID: ' + str(ssid) + ', BAD MAC: ' + str(bssid))
+                # print('SSID: ' + str(ssid) + ', BAD MAC: ' + str(bssid))
+                print("{:>2d}  {:s}  {:s} {:s} - BAD".format(int(channel), enc, bssid, ssid))
             else:
-                print('SSID: ' + str(ssid) + ', GOOD MAC: ' + str(bssid))
+                # print('SSID: ' + str(ssid) + ', GOOD MAC: ' + str(bssid))
+                print("{:>2d}  {:s}  {:s} {:s} - GOOD".format(int(channel), enc, bssid, ssid))
+            print(str(len(aps)), " unique APs with our SSID seen")
 
 # Channel hopper
 def channel_hopper():
