@@ -72,10 +72,6 @@ if __name__ == "__main__":
     with open('config.json') as f:
         config = json.load(f)
 
-    # Print the program header
-    # print("-=-=-=-=-=-= AIROSCAPY =-=-=-=-=-=-")
-    # print("CH ENC BSSID             SSID")
-
     # Start the channel hopper
     p = Process(target=channel_hopper)
     p.start()
