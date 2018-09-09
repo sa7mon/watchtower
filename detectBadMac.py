@@ -4,9 +4,23 @@ import sys, os, signal
 from multiprocessing import Process
 import json
 from scapy.all import *
+# import scapy_ex
+
+import random
+import time
+import struct
 
 interface = ''  # monitor interface
 aps = {}  # dictionary to store unique APs
+
+radiotap_formats = {"TSFT":"Q", "Flags":"B", "Rate":"B",
+      "Channel":"HH", "FHSS":"BB", "dBm_AntSignal":"b", "dBm_AntNoise":"b",
+      "Lock_Quality":"H", "TX_Attenuation":"H", "dB_TX_Attenuation":"H",
+      "dBm_TX_Power":"b", "Antenna":"B",  "dB_AntSignal":"B",
+      "dB_AntNoise":"B", "b14":"H", "b15":"B", "b16":"B", "b17":"B", "b18":"B",
+      "b19":"BBB", "b20":"LHBB", "b21":"HBBBBBH", "b22":"B", "b23":"B",
+      "b24":"B", "b25":"B", "b26":"B", "b27":"B", "b28":"B", "b29":"B",
+"b30":"B", "Ext":"B"}
 
 
 # process unique sniffed Beacons and ProbeResponses.
@@ -25,23 +39,16 @@ def sniffAP(p):
         else:
             enc = 'N'
 
-
-
-        # Display discovered AP
-        # print("{:>2d}  {:s}  {:s} {:s}".format(int(channel), enc, bssid, ssid))
-
-        # print(str(len(aps)), " unique APs found")
         if ssid == config['ssid']:
 
+            # p.show()
             # Save discovered AP
             aps[p[Dot11].addr3] = enc
 
             if bssid not in config['macs']:
-                # print('SSID: ' + str(ssid) + ', BAD MAC: ' + str(bssid))
-                print("{:>2d}  {:s}  {:s} {:s} - BAD".format(int(channel), enc, bssid, ssid))
+                print("{:>2d}  {:s}  {:s}  {:s} {:s} - BAD".format(int(channel), enc, str(rssi), bssid, ssid))
             else:
-                # print('SSID: ' + str(ssid) + ', GOOD MAC: ' + str(bssid))
-                print("{:>2d}  {:s}  {:s} {:s} - GOOD".format(int(channel), enc, bssid, ssid))
+                print("{:>2d}  {:s}  {:s}  {:s} {:s} - GOOD".format(int(channel), enc, str(rssi), bssid, ssid))
             print(str(len(aps)), " unique APs with our SSID seen")
 
 # Channel hopper
@@ -60,10 +67,10 @@ def signal_handler(signal, frame):
     p.terminate()
     p.join()
 
-    print("\n-=-=-=-=-=  STATISTICS =-=-=-=-=-=-")
-    print("Total APs found: {:d}".format(len(aps)))
-    print("Encrypted APs  : {:d}".format(len([ap for ap in aps if aps[ap] == 'Y'])))
-    print("Unencrypted APs: {:d}".format(len([ap for ap in aps if aps[ap] == 'N'])))
+    # print("\n-=-=-=-=-=  STATISTICS =-=-=-=-=-=-")
+    # print("Total APs found: {:d}".format(len(aps)))
+    # print("Encrypted APs  : {:d}".format(len([ap for ap in aps if aps[ap] == 'Y'])))
+    # print("Unencrypted APs: {:d}".format(len([ap for ap in aps if aps[ap] == 'N'])))
 
     sys.exit(0)
 
