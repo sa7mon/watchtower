@@ -26,10 +26,21 @@ https://wlan1nde.wordpress.com/2016/06/28/using-scapy-to-send-wlan-frames/
 * IFTTT
 
 
+## Dev Roadmap 
+### v0.1
+* Detect a RAP with same SSID but mismatched settings (WPA2-PSK & 802.1x)
+   * MAC
+   * Auth Type / Cipher Suite
+   * Channel
+* Detect deauth packets destined for clients associated with our good SSID
+### v0.2
+* Detect a RAP with all of the same settings, but a significantly different signal strength
+
+
+
 ## Scapy notes
 https://stackoverflow.com/a/31263464
 https://gist.github.com/securitytube/5291959
-
 
 
 ## Dev notes
