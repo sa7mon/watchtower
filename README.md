@@ -74,3 +74,23 @@ millions of devices need to be changed or upgraded. Hence, few WLANs world-
 wide have implemented this standard. Thus, deauthentication/disassociation
 DoS attacks remain a problem in WLANs.  - Alotaibi Khaled Elleithy
 * Need to read through "Passive online detection....TCP ACK-Pairs"
+
+## hostapd Configs
+
+### Regular WPA2-PSK network
+```
+interface=wlan0       # the interface used by the AP
+hw_mode=g             # g simply means 2.4GHz band
+channel=10            # the channel to use
+ieee80211d=1          # limit the frequencies used to those allowed in the country
+country_code=US       # the country code
+ieee80211n=1          # 802.11n support
+wmm_enabled=1         # QoS support
+
+ssid=somename         # the name of the AP
+auth_algs=1           # 1=wpa, 2=wep, 3=both
+wpa=2                 # WPA2 only
+wpa_key_mgmt=WPA-PSK  
+rsn_pairwise=CCMP
+wpa_passphrase=somepassword
+```
