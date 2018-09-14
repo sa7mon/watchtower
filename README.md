@@ -26,10 +26,21 @@ https://wlan1nde.wordpress.com/2016/06/28/using-scapy-to-send-wlan-frames/
 * IFTTT
 
 
+## Dev Roadmap 
+### v0.1
+* Detect a RAP with same SSID but mismatched settings (WPA2-PSK & 802.1x)
+   * MAC
+   * Auth Type / Cipher Suite
+   * Channel
+* Detect deauth packets destined for clients associated with our good SSID
+### v0.2
+* Detect a RAP with all of the same settings, but a significantly different signal strength
+
+
+
 ## Scapy notes
 https://stackoverflow.com/a/31263464
 https://gist.github.com/securitytube/5291959
-
 
 
 ## Dev notes
@@ -70,3 +81,23 @@ millions of devices need to be changed or upgraded. Hence, few WLANs world-
 wide have implemented this standard. Thus, deauthentication/disassociation
 DoS attacks remain a problem in WLANs.  - Alotaibi Khaled Elleithy
 * Need to read through "Passive online detection....TCP ACK-Pairs"
+
+## hostapd Configs
+
+### Regular WPA2-PSK network
+```
+interface=wlan0       # the interface used by the AP
+hw_mode=g             # g simply means 2.4GHz band
+channel=10            # the channel to use
+ieee80211d=1          # limit the frequencies used to those allowed in the country
+country_code=US       # the country code
+ieee80211n=1          # 802.11n support
+wmm_enabled=1         # QoS support
+
+ssid=somename         # the name of the AP
+auth_algs=1           # 1=wpa, 2=wep, 3=both
+wpa=2                 # WPA2 only
+wpa_key_mgmt=WPA-PSK  
+rsn_pairwise=CCMP
+wpa_passphrase=somepassword
+```
