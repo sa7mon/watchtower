@@ -3,30 +3,17 @@
 import sys, os, signal
 from multiprocessing import Process
 import json
-from scapy.all import *
-# import scapy_ex
-
 import random
 import time
-import struct
+from scapy.all import *
 
 interface = ''  # monitor interface
 aps = {}  # dictionary to store unique APs
 
-radiotap_formats = {"TSFT":"Q", "Flags":"B", "Rate":"B",
-      "Channel":"HH", "FHSS":"BB", "dBm_AntSignal":"b", "dBm_AntNoise":"b",
-      "Lock_Quality":"H", "TX_Attenuation":"H", "dB_TX_Attenuation":"H",
-      "dBm_TX_Power":"b", "Antenna":"B",  "dB_AntSignal":"B",
-      "dB_AntNoise":"B", "b14":"H", "b15":"B", "b16":"B", "b17":"B", "b18":"B",
-      "b19":"BBB", "b20":"LHBB", "b21":"HBBBBBH", "b22":"B", "b23":"B",
-      "b24":"B", "b25":"B", "b26":"B", "b27":"B", "b28":"B", "b29":"B",
-"b30":"B", "Ext":"B"}
-
-
 # process unique sniffed Beacons and ProbeResponses.
 def sniffAP(p):
-    if ((p.haslayer(Dot11Beacon) or p.haslayer(Dot11ProbeResp))
-            and p[Dot11].addr3 not in aps):
+    if p.haslayer(Dot11Beacon) or p.haslayer(Dot11ProbeResp):
+        p.show()
         ssid = p[Dot11Elt].info.decode('UTF-8')
         bssid = p[Dot11].addr3
         channel = int(ord(p[Dot11Elt:3].info))
@@ -46,9 +33,9 @@ def sniffAP(p):
             aps[p[Dot11].addr3] = enc
 
             if bssid not in config['macs']:
-                print("{:>2d}  {:s}  {:s}  {:s} {:s} - BAD".format(int(channel), enc, str(rssi), bssid, ssid))
+                print("{:>2d}  {:s}  {:s} {:s} - BAD".format(int(channel), enc, bssid, ssid))
             else:
-                print("{:>2d}  {:s}  {:s}  {:s} {:s} - GOOD".format(int(channel), enc, str(rssi), bssid, ssid))
+                print("{:>2d}  {:s}  {:s} {:s} - GOOD".format(int(channel), enc, bssid, ssid))
             print(str(len(aps)), " unique APs with our SSID seen")
 
 # Channel hopper
