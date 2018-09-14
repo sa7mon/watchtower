@@ -8,14 +8,14 @@ import time
 from scapy.all import *
 
 interface = ''  # monitor interface
-aps = {}  # dictionary to store unique APs
+aps = set()  # dictionary to store unique APs
 
 # process unique sniffed Beacons and ProbeResponses.
 def sniffAP(p):
     if p.haslayer(Dot11Beacon) or p.haslayer(Dot11ProbeResp):
-        p.show()
+        # p.show()
         ssid = p[Dot11Elt].info.decode('UTF-8')
-        bssid = p[Dot11].addr3
+        bssid = str(p[Dot11].addr3).upper()
         channel = int(ord(p[Dot11Elt:3].info))
         capability = p.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}\
                 {Dot11ProbeResp:%Dot11ProbeResp.cap%}")
@@ -27,16 +27,15 @@ def sniffAP(p):
             enc = 'N'
 
         if ssid == config['ssid']:
+            currentAP = " {:>2d}   {:s}  {:s} {:s}".format(int(channel), enc, bssid, ssid)
 
-            # p.show()
-            # Save discovered AP
-            aps[p[Dot11].addr3] = enc
-
-            if bssid not in config['macs']:
-                print("{:>2d}  {:s}  {:s} {:s} - BAD".format(int(channel), enc, bssid, ssid))
-            else:
-                print("{:>2d}  {:s}  {:s} {:s} - GOOD".format(int(channel), enc, bssid, ssid))
-            print(str(len(aps)), " unique APs with our SSID seen")
+            if currentAP not in aps:    # This is an AP we haven't seen before
+                aps.add(currentAP)
+                if bssid not in config['macs']:
+                    print("  BAD  ", currentAP)
+                else:
+                    print(" GOOD  ", currentAP)
+                # print(str(len(aps)), " unique APs with our SSID seen")
 
 # Channel hopper
 def channel_hopper():
@@ -53,11 +52,6 @@ def channel_hopper():
 def signal_handler(signal, frame):
     p.terminate()
     p.join()
-
-    # print("\n-=-=-=-=-=  STATISTICS =-=-=-=-=-=-")
-    # print("Total APs found: {:d}".format(len(aps)))
-    # print("Encrypted APs  : {:d}".format(len([ap for ap in aps if aps[ap] == 'Y'])))
-    # print("Unencrypted APs: {:d}".format(len([ap for ap in aps if aps[ap] == 'N'])))
 
     sys.exit(0)
 
@@ -79,5 +73,7 @@ if __name__ == "__main__":
     # Capture CTRL-C
     signal.signal(signal.SIGINT, signal_handler)
 
+    print("\nSTATUS  CHAN ENC        MAC         SSID")
+    print("========================================")
     # Start the sniffer
     sniff(iface=interface, prn=sniffAP, store=0)
