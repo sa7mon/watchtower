@@ -2,5 +2,9 @@
   "ssid": "[2.4Ghz]Mount Olympus",
   "macs": [
     "b0:39:56:0e:e8:14"
-  ]
+  ],
+  "checks": {
+    "checkMAC": true,
+    "checkChannel": true
+  }
 }
