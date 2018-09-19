@@ -10,6 +10,15 @@ from scapy.all import *
 interface = ''  # monitor interface
 aps = set()  # dictionary to store unique APs
 
+def checkAP(ssid, bssid, channel, enc):
+    if config['checks']['checkMAC']:
+        if bssid.upper() not in config['macs']:
+            return False
+    # if config['checks']['checkChannel']:
+    # if config['checks']['checkAuthType']:
+
+    return True
+
 # process unique sniffed Beacons and ProbeResponses.
 def sniffAP(p):
     if p.haslayer(Dot11Beacon) or p.haslayer(Dot11ProbeResp):
@@ -31,10 +40,10 @@ def sniffAP(p):
 
             if currentAP not in aps:    # This is an AP we haven't seen before
                 aps.add(currentAP)
-                if bssid not in config['macs']:
-                    print("  BAD  ", currentAP)
-                else:
+                if checkAP(ssid, bssid, channel, enc):
                     print(" GOOD  ", currentAP)
+                else:
+                    print("  BAD  ", currentAP)
 
 # Channel hopper
 def channel_hopper():
