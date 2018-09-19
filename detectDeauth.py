@@ -12,55 +12,18 @@ aps = set()  # dictionary to store unique APs
 
 # process unique sniffed Beacons and ProbeResponses.
 def sniffAP(p):
-    if p.haslayer(Dot11Beacon) or p.haslayer(Dot11ProbeResp):
+    if p.haslayer(Dot11Deauth):
+
         # p.show()
-        ssid = p[Dot11Elt].info.decode('UTF-8')
-        bssid = str(p[Dot11].addr3).upper()
-        channel = int(ord(p[Dot11Elt:3].info))
-        capability = p.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}\
-                {Dot11ProbeResp:%Dot11ProbeResp.cap%}")
+        # ssid = p[Dot11Elt].info.decode('UTF-8')
+        # bssid = str(p[Dot11].addr3).upper()
+        # channel = int(ord(p[Dot11Elt:3].info))
+        # capability = p.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}\
+        #         {Dot11ProbeResp:%Dot11ProbeResp.cap%}")
+        sourceMAC = str(p[Dot11].addr2).upper()
 
-        # Check for encrypted networks
-        if re.search("privacy", capability):
-            enc = 'Y'
-        else:
-            enc = 'N'
+        print("Deauth detected from: ", sourceMAC)
 
-        if ssid == config['ssid']:
-            currentAP = " {:>2d}   {:s}  {:s} {:s}".format(int(channel), enc, bssid, ssid)
-
-            if currentAP not in aps:    # This is an AP we haven't seen before
-                aps.add(currentAP)
-                # p.show()
-                if bssid not in config['macs']:
-                    print("  BAD  ", currentAP)
-                else:
-                    print(" GOOD  ", currentAP)
-                # print(str(len(aps)), " unique APs with our SSID seen")
-
-
-                pkt = p[Dot11Elt]
-                cap = p.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}"
-                                  "{Dot11ProbeResp:%Dot11ProbeResp.cap%}").split('+')
-                ssid, channel = None, None
-                crypto = set()
-                while isinstance(p, Dot11Elt):
-                    if pkt.ID == 0:
-                        ssid = pkt.info
-                    elif pkt.ID == 3:
-                        channel = ord(pkt.info)
-                    elif pkt.ID == 48:
-                        crypto.add("WPA2")
-                    elif pkt.ID == 221 and pkt.info.startswith('\x00P\xf2\x01\x01\x00'):
-                        crypto.add("WPA")
-                        pkt = pkt.payload
-                if not crypto:
-                    if 'privacy' in cap:
-                        crypto.add("WEP")
-                    else:
-                        crypto.add("OPN")
-
-                print(crypto)
 
 # Channel hopper
 def channel_hopper():
