@@ -34,35 +34,31 @@ def sniffAP(p):
 
         # Check for encrypted networks
         if re.search("privacy", capability):
-            enc = 'Y'
+            priv = 'Y'
         else:
-            enc = 'N'
+            priv = 'N'
+
+        # Determine encryption type
+        if p.getlayer(Dot11Elt, ID=48) is not None:
+            enc = "WPA2"
+        elif p.getlayer(Dot11Elt, ID=221) is not None and p.getlayer(Dot11Elt, ID=221).info.startswith(
+                b'\x00P\xf2\x01\x01\x00'):
+            enc = "WPA"
+        else:
+            if priv == 'Y':
+                enc = "It's WEP"
+            else:
+                enc = "It's OPEN"
 
         if ssid == config['ssid']:
-            currentAP = " {:>2d}   {:s}  {:s} {:s}".format(int(channel), enc, bssid, ssid)
+            currentAP = " {:>2d}   {:s}   {:s}  {:s}  {:s}".format(int(channel), priv, enc, bssid, ssid)
 
             if currentAP not in aps:    # This is an AP we haven't seen before
                 aps.add(currentAP)
-                if checkAP(ssid, bssid, channel, enc):
-                    print(" GOOD  ", currentAP)
+                if checkAP(ssid, bssid, channel, priv):
+                    print(" GOOD ", currentAP)
                 else:
-                    print("  BAD  ", currentAP)
-
-                # If Element ID 48 present: WPA2
-                # If no ID 48, but an ID 221 and pkt.info.startswith('\x00P\xf2\x01\x01\x00'), then WPA
-                # If we get to here and don't have a mode yet, it's either WEP or OPEN. Check the
-                # 'privacy' flag. If 'Y', then WEP - else OPEN
-
-                wpa2 = p.getlayer(Dot11Elt, ID=48)
-                if wpa2 is not None:
-                    print("It's WPA2")
-                elif p.getlayer(Dot11Elt, ID=221)is not None and p.getlayer(Dot11Elt, ID=221).info.startswith(b'\x00P\xf2\x01\x01\x00'):
-                    print("It's WPA")
-                else:
-                    if enc == 'Y':
-                        print("It's WEP")
-                    else:
-                        print("It's OPEN")
+                    print("  BAD ", currentAP)
 
                 # pkt = p[Dot11Elt]
                 # while isinstance(pkt, Dot11Elt):
@@ -112,7 +108,7 @@ if __name__ == "__main__":
     # Capture CTRL-C
     signal.signal(signal.SIGINT, signal_handler)
 
-    print("\nSTATUS  CHAN ENC        MAC         SSID")
-    print("========================================")
+    print("\nSTATUS CHAN PRIV ENC        MAC               SSID")
+    print("====================================================")
     # Start the sniffer
     sniff(iface=interface, prn=sniffAP, store=0)
