@@ -1,10 +1,12 @@
 {
   "ssid": "[2.4Ghz]Mount Olympus",
   "macs": [
-    "b0:39:56:0e:e8:14"
+    "B0:39:56:0E:E8:14"
   ],
+  "authType": "WPA2",
   "checks": {
     "checkMAC": true,
-    "checkChannel": true
+    "checkChannel": true,
+    "checkAuthType": true
   }
 }
