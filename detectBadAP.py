@@ -3,18 +3,21 @@
 import sys, os, signal
 from multiprocessing import Process
 import json
-import random
-import time
 from scapy.all import *
 
 interface = ''  # monitor interface
 aps = set()  # dictionary to store unique APs
 
-def checkAP(ssid, bssid, channel, enc):
+
+def checkAP(ap_ssid, ap_mac, ap_channel, ap_enc):
     if config['checks']['checkMAC']:
-        if bssid.upper() not in config['macs']:
+        if ap_mac.upper() not in config['macs']:
             return False
-    # if config['checks']['checkChannel']:
+
+    if config['checks']['checkChannel']:
+        if ap_channel != config['channel']:
+            return False
+
     # if config['checks']['checkAuthType']:
 
     return True

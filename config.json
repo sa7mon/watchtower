@@ -3,6 +3,7 @@
   "macs": [
     "B0:39:56:0E:E8:14"
   ],
+  "channel": 6,
   "authType": "WPA2",
   "checks": {
     "checkMAC": true,
