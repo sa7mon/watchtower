@@ -46,6 +46,9 @@ authType options:
 * "WEP"
 * "OPEN"
 
+## Known issues
+* In hostapd, if "wpa=" is set to 3 enabling both WPA and WPA2, we just detect it as WPA2
+
 ## Dev Roadmap 
 ### v0.1
 * Detect a RAP with same SSID but mismatched settings (WPA2-PSK & 802.1x)
