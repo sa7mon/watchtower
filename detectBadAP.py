@@ -48,6 +48,34 @@ def sniffAP(p):
                 else:
                     print("  BAD  ", currentAP)
 
+                # If Element ID 48 present: WPA2
+                # If no ID 48, but an ID 221 and pkt.info.startswith('\x00P\xf2\x01\x01\x00'), then WPA
+                # If we get to here and don't have a mode yet, it's either WEP or OPEN. Check the
+                # 'privacy' flag. If 'Y', then WEP - else OPEN
+
+                wpa2 = p.getlayer(Dot11Elt, ID=48)
+                if wpa2 is not None:
+                    print("It's WPA2")
+                elif p.getlayer(Dot11Elt, ID=221)is not None and p.getlayer(Dot11Elt, ID=221).info.startswith(b'\x00P\xf2\x01\x01\x00'):
+                    print("It's WPA")
+                else:
+                    if enc == 'Y':
+                        print("It's WEP")
+                    else:
+                        print("It's OPEN")
+
+                # pkt = p[Dot11Elt]
+                # while isinstance(pkt, Dot11Elt):
+                #     # intValue = ""
+                #     # for myByte in pkt.info:
+                #     #     if isinstance(myByte, bytes):
+                #     #         intValue += str(ord(myByte))
+                #     print(pkt.ID, " (", str(len(pkt.info)), ") ", pkt.info)
+                #     pkt = pkt.payload
+
+
+
+
 # Channel hopper
 def channel_hopper():
     while True:
