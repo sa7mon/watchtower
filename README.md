@@ -26,6 +26,26 @@ https://wlan1nde.wordpress.com/2016/06/28/using-scapy-to-send-wlan-frames/
 * IFTTT
 
 
+## config.json documentation
+```json
+{
+  "ssid": "[2.4Ghz]Mount Olympus",
+  "macs": [
+    "B0:39:56:0E:E8:14"
+  ],
+  "authType": "WPA2",
+  "checks": {
+    "checkMAC": true,
+    "checkChannel": true,
+    "checkAuthType": true
+  }
+}
+```
+authType options:
+* "WPA2"
+* "WEP"
+* "OPEN"
+
 ## Dev Roadmap 
 ### v0.1
 * Detect a RAP with same SSID but mismatched settings (WPA2-PSK & 802.1x)
