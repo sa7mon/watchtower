@@ -9,13 +9,6 @@ interface = ''  # monitor interface
 aps = set()  # dictionary to store unique APs
 
 
-# def bytesToHex(bytes):
-#     for byte in bytes:
-
-
-def byteToHex(byte):
-    return ord(byte)
-
 def checkAP(ap_ssid, ap_mac, ap_channel, ap_enc):
     if config['checks']['checkMAC']:
         if ap_mac.upper() not in config['macs']:
@@ -26,8 +19,66 @@ def checkAP(ap_ssid, ap_mac, ap_channel, ap_enc):
             return False
 
     # if config['checks']['checkAuthType']:
-
     return True
+
+
+def getWPA2info(pkt):
+    # pkt = p.getlayer(Dot11Elt, ID=48)
+    # print(pkt.ID, len(pkt.info), pkt.info)
+
+    # Array slices don't include end index so add 1
+
+    # 00-0F-AC-01 WEP40
+    # 00-0F-AC-05 WEP104
+    # 00-0F-AC-04 CCMP
+    # 00-0F-AC-02 TKIP
+
+    # OUI = [2:4]
+    groupCipherOUI = pkt.info[2:5]
+
+    # Group Cipher Type = [5]
+    # 1 = WEP40, 2 = TKIP, 4 = CCMP, 5 = WEP104
+    groupCipherType = pkt.info[5]
+
+    if groupCipherType == 1:
+        cipher = "WEP40"
+    elif groupCipherType == 2:
+        cipher = "TKIP"
+    elif groupCipherType == 4:
+        cipher = "CCMP"
+    elif groupCipherType == 5:
+        cipher = "WEP104"
+    else:
+        cipher = "???"
+
+    # Pairwise Cipher Count = [6:7]
+    # pairwiseCipherCount = pkt.info[6]
+
+    # PairwiseKey Cipher List (array?) = [8:11]
+    # pairwiseCipherOUI =
+
+    # AuthKey Mngmnt Count = [12:13]
+    authKeyMgmtCount = pkt.info[12]
+
+    # AuthKey Mngmnt Suite List = [14:17]
+    # 00-0f-ac-02  PSK
+    # 00-0f-ac-01  802.1x (EAP)
+    authKeyMgmtSuite = pkt.info[14:18]
+    if authKeyMgmtSuite == b'\x00\x0f\xac\x02':
+        auth = "PSK"
+    elif authKeyMgmtSuite == b'\x00\x0f\xac\x01':
+        auth = "EAP"
+    else:
+        auth = "???"
+
+    return {
+        "groupCipherOUI": groupCipherOUI,
+        "groupCipherType": groupCipherType,
+        "cipher": cipher,
+        "authKeyMgmtCount": authKeyMgmtCount,
+        "authKeyMgmtSuite": authKeyMgmtSuite,
+        "auth": auth
+    }
 
 
 # process unique sniffed Beacons and ProbeResponses.
@@ -58,43 +109,18 @@ def sniffAP(p):
                 enc = "It's OPEN"
 
         if ssid == config['ssid']:
-            currentAP = " {:>2d}   {:s}   {:s}  {:s}  {:s}".format(int(channel), priv, enc, bssid, ssid)
+            if enc == "WPA2":
+                apInfo = getWPA2info(p.getlayer(Dot11Elt, ID=48))
+            else:
+                apInfo = {}
+
+            currentAP = " {:>2d}   {:s}   {:s}  {:s}  {:s}  {:s}".format(int(channel), priv, enc, apInfo["cipher"], bssid, ssid)
 
             if currentAP not in aps:    # This is an AP we haven't seen before
                 aps.add(currentAP)
                 if checkAP(ssid, bssid, channel, priv):
                     print(" GOOD ", currentAP)
-                    pkt = p.getlayer(Dot11Elt, ID=48)
-                    print(pkt.ID, len(pkt.info),pkt.info)
 
-                    # Array slices don't include end index so add 1
-
-                    # 00-0F-AC-01 WEP40
-                    # 00-0F-AC-05 WEP104
-                    # 00-0F-AC-04 CCMP
-                    # 00-0F-AC-02 TKIP
-
-                    # OUI = [2:4]
-                    groupCipherOUI = pkt.info[2:5]
-
-                    # Group Cipher Type = [5]
-                    # 1 = WEP40, 2 = TKIP, 4 = CCMP, 5 = TKIP
-                    groupCipherType = pkt.info[5]
-
-                    # Pairwise Cipher Count = [6:7]
-                    # pairwiseCipherCount = pkt.info[6]
-
-                    # PairwiseKey Cipher List (array?) = [8:11]
-                    # pairwiseCipherOUI =
-
-                    # AuthKey Mngmnt Count = [12:13]
-                    authKeyMgmtCount = pkt.info[12]
-
-                    # AuthKey Mngmnt Suite List = [14:17]
-                    # 00-0f-ac-02  PSK
-                    # 00-0f-ac-01  802.1x (EAP)
-                    authKeyMgmtSuite = pkt.info[14:18]
-                    print(authKeyMgmtSuite)
                 else:
                     print("  BAD ", currentAP)
 
@@ -146,7 +172,7 @@ if __name__ == "__main__":
     # Capture CTRL-C
     signal.signal(signal.SIGINT, signal_handler)
 
-    print("\nSTATUS CHAN PRIV ENC        MAC               SSID")
-    print("====================================================")
+    print("\nSTATUS CHAN PRIV ENC   CIPHER        MAC               SSID")
+    # print("====================================================")
     # Start the sniffer
     sniff(iface=interface, prn=sniffAP, store=0)
