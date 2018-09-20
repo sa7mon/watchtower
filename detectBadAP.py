@@ -9,6 +9,13 @@ interface = ''  # monitor interface
 aps = set()  # dictionary to store unique APs
 
 
+# def bytesToHex(bytes):
+#     for byte in bytes:
+
+
+def byteToHex(byte):
+    return ord(byte)
+
 def checkAP(ap_ssid, ap_mac, ap_channel, ap_enc):
     if config['checks']['checkMAC']:
         if ap_mac.upper() not in config['macs']:
@@ -22,10 +29,10 @@ def checkAP(ap_ssid, ap_mac, ap_channel, ap_enc):
 
     return True
 
+
 # process unique sniffed Beacons and ProbeResponses.
 def sniffAP(p):
     if p.haslayer(Dot11Beacon) or p.haslayer(Dot11ProbeResp):
-        # p.show()
         ssid = p[Dot11Elt].info.decode('UTF-8')
         bssid = str(p[Dot11].addr3).upper()
         channel = int(ord(p[Dot11Elt:3].info))
@@ -57,6 +64,31 @@ def sniffAP(p):
                 aps.add(currentAP)
                 if checkAP(ssid, bssid, channel, priv):
                     print(" GOOD ", currentAP)
+                    pkt = p.getlayer(Dot11Elt, ID=48)
+                    # print(pkt.ID, len(pkt.info),pkt.info)
+
+                    # Array slices don't include end index so add 1
+
+                    # 00-0F-AC-01 WEP40
+                    # 00-0F-AC-05 WEP104
+                    # 00-0F-AC-04 CCMP
+                    # 00-0F-AC-02TKIP
+
+
+                    # OUI = [2:4]
+                    print(pkt.info[2:5])
+
+                    # Group Cipher Type = [5]
+                    # 4 = CCMP
+                    groupCipherType = pkt.info[5]
+
+                    # Pairwise Cipher Type = [6:7]
+                    # PairwiseKey Cipher List (array?) = [8:11]
+                    # AuthKey Mngmnt Count = [12:13]
+                    # AuthKey Mngmnt Suite List = [14:17]
+
+                    # pkt.info[]
+
                 else:
                     print("  BAD ", currentAP)
 
