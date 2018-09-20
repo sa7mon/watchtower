@@ -1,9 +1,9 @@
 {
-  "ssid": "[2.4Ghz]Mount Olympus",
+  "ssid": "DIRECT-tgMFC-L2710DW_BR57f1",
   "macs": [
-    "B0:39:56:0E:E8:14"
+    "9E:30:5B:27:57:F1"
   ],
-  "channel": 6,
+  "channel": 11,
   "authType": "WPA2",
   "checks": {
     "checkMAC": true,

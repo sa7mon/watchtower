@@ -65,30 +65,36 @@ def sniffAP(p):
                 if checkAP(ssid, bssid, channel, priv):
                     print(" GOOD ", currentAP)
                     pkt = p.getlayer(Dot11Elt, ID=48)
-                    # print(pkt.ID, len(pkt.info),pkt.info)
+                    print(pkt.ID, len(pkt.info),pkt.info)
 
                     # Array slices don't include end index so add 1
 
                     # 00-0F-AC-01 WEP40
                     # 00-0F-AC-05 WEP104
                     # 00-0F-AC-04 CCMP
-                    # 00-0F-AC-02TKIP
-
+                    # 00-0F-AC-02 TKIP
 
                     # OUI = [2:4]
-                    print(pkt.info[2:5])
+                    groupCipherOUI = pkt.info[2:5]
 
                     # Group Cipher Type = [5]
-                    # 4 = CCMP
+                    # 1 = WEP40, 2 = TKIP, 4 = CCMP, 5 = TKIP
                     groupCipherType = pkt.info[5]
 
-                    # Pairwise Cipher Type = [6:7]
+                    # Pairwise Cipher Count = [6:7]
+                    # pairwiseCipherCount = pkt.info[6]
+
                     # PairwiseKey Cipher List (array?) = [8:11]
+                    # pairwiseCipherOUI =
+
                     # AuthKey Mngmnt Count = [12:13]
+                    authKeyMgmtCount = pkt.info[12]
+
                     # AuthKey Mngmnt Suite List = [14:17]
-
-                    # pkt.info[]
-
+                    # 00-0f-ac-02  PSK
+                    # 00-0f-ac-01  802.1x (EAP)
+                    authKeyMgmtSuite = pkt.info[14:18]
+                    print(authKeyMgmtSuite)
                 else:
                     print("  BAD ", currentAP)
 
