@@ -114,7 +114,7 @@ def sniffAP(p):
             else:
                 apInfo = {}
 
-            currentAP = " {:>2d}   {:s}   {:s}  {:s}  {:s}  {:s}".format(int(channel), priv, enc, apInfo["cipher"], bssid, ssid)
+            currentAP = " {:>2d}   {:s}   {:s}  {:s}    {:s}  {:s}  {:s}".format(int(channel), priv, enc, apInfo["cipher"], apInfo["auth"], bssid, ssid)
 
             if currentAP not in aps:    # This is an AP we haven't seen before
                 aps.add(currentAP)
@@ -172,7 +172,7 @@ if __name__ == "__main__":
     # Capture CTRL-C
     signal.signal(signal.SIGINT, signal_handler)
 
-    print("\nSTATUS CHAN PRIV ENC   CIPHER        MAC               SSID")
+    print("\nSTATUS CHAN PRIV ENC   CIPHER  AUTH        MAC               SSID")
     # print("====================================================")
     # Start the sniffer
     sniff(iface=interface, prn=sniffAP, store=0)
