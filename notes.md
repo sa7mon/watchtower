@@ -1,5 +1,9 @@
 # Notes
 
+## Links
+* [WiFi RSN Information](https://community.arubanetworks.com/t5/Technology-Blog/A-closer-look-at-WiFi-Security-IE-Information-Elements/ba-p/198867)
+* [Hostapd info](https://wireless.wiki.kernel.org/en/users/documentation/hostapd#wireless_interface)
+
 ## hostapd
 * **auth_algs** = 1 - WPA, 2 - WEP, 3 - Both
 * **wpa** = 1 - WPA1, 2 - WPA2, 3 - Both
