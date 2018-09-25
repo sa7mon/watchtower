@@ -1,13 +1,15 @@
 {
-  "ssid": "testdontuseme",
+  "ssid": "DIRECT-95-HP OfficeJet Pro 7740",
   "macs": [
-    "B0:39:56:0E:E8:14"
+    "9A:E7:F4:B0:95:95"
   ],
   "channel": 6,
-  "authType": "WPA2",
+  "encryption": "WPA2",
+  "cipher": "CCMP",
+  "authentication": "PSK",
   "checks": {
     "checkMAC": true,
     "checkChannel": true,
-    "checkAuthType": true
+    "checkEncryption": true
   }
 }
