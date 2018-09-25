@@ -10,6 +10,7 @@
   "checks": {
     "checkMAC": true,
     "checkChannel": true,
-    "checkEncryption": true
+    "checkEncryption": true,
+    "checkCipher": true
   }
 }

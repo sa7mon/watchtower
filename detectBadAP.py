@@ -9,18 +9,24 @@ interface = ''  # monitor interface
 aps = set()  # dictionary to store unique APs
 
 
-def checkAP(ap_ssid, ap_mac, ap_channel, ap_enc):
+def checkAP(ap_mac, ap_channel, ap_enc, ap_cipher):
     if config['checks']['checkMAC']:
         if ap_mac.upper() not in config['macs']:
             return False
 
     if config['checks']['checkChannel']:
         if ap_channel != config['channel']:
+            print("Bad channel: ", ap_channel, " ", config['channel'])
             return False
 
     if config['checks']['checkEncryption']:
         if ap_enc != config['encryption']:
-            print("Failed encryption check: ", ap_enc, " - ", config['encryption'])
+            print("Bad encryption: ", ap_enc, " ", config['encryption'])
+            return False
+
+    if config['checks']['checkCipher']:
+        if ap_cipher != config['cipher']:
+            print("Bad cipher: ", ap_cipher, " ", config['cipher'])
             return False
 
     return True
@@ -118,11 +124,12 @@ def sniffAP(p):
             else:
                 apInfo = {}
 
-            currentAP = " {:>2d}   {:s}   {:s}  {:s}    {:s}  {:s}  {:s}".format(int(channel), priv, enc, apInfo["cipher"], apInfo["auth"], bssid, ssid)
+            currentAP = " {:>2d}   {:s}   {:s}  {:s}    {:s}  {:s}  {:s}".format(
+                        int(channel), priv, enc, apInfo["cipher"], apInfo["auth"], bssid, ssid)
 
             if currentAP not in aps:    # This is an AP we haven't seen before
                 aps.add(currentAP)
-                if checkAP(ssid, bssid, channel, enc):
+                if checkAP(bssid, channel, enc, apInfo["cipher"]):
                     print(" GOOD ", currentAP)
 
                 else:
