@@ -18,7 +18,11 @@ def checkAP(ap_ssid, ap_mac, ap_channel, ap_enc):
         if ap_channel != config['channel']:
             return False
 
-    # if config['checks']['checkAuthType']:
+    if config['checks']['checkEncryption']:
+        if ap_enc != config['encryption']:
+            print("Failed encryption check: ", ap_enc, " - ", config['encryption'])
+            return False
+
     return True
 
 
@@ -104,9 +108,9 @@ def sniffAP(p):
             enc = "WPA"
         else:
             if priv == 'Y':
-                enc = "It's WEP"
+                enc = "WEP"
             else:
-                enc = "It's OPEN"
+                enc = "OPEN"
 
         if ssid == config['ssid']:
             if enc == "WPA2":
@@ -118,7 +122,7 @@ def sniffAP(p):
 
             if currentAP not in aps:    # This is an AP we haven't seen before
                 aps.add(currentAP)
-                if checkAP(ssid, bssid, channel, priv):
+                if checkAP(ssid, bssid, channel, enc):
                     print(" GOOD ", currentAP)
 
                 else:
