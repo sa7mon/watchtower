@@ -11,6 +11,7 @@
     "checkMAC": true,
     "checkChannel": true,
     "checkEncryption": true,
-    "checkCipher": true
+    "checkCipher": true,
+    "checkAuthentication": true
   }
 }

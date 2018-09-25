@@ -9,7 +9,7 @@ interface = ''  # monitor interface
 aps = set()  # dictionary to store unique APs
 
 
-def checkAP(ap_mac, ap_channel, ap_enc, ap_cipher):
+def checkAP(ap_mac, ap_channel, ap_enc, ap_cipher, ap_auth):
     if config['checks']['checkMAC']:
         if ap_mac.upper() not in config['macs']:
             return False
@@ -27,6 +27,11 @@ def checkAP(ap_mac, ap_channel, ap_enc, ap_cipher):
     if config['checks']['checkCipher']:
         if ap_cipher != config['cipher']:
             print("Bad cipher: ", ap_cipher, " ", config['cipher'])
+            return False
+
+    if config['checks']['checkAuthentication']:
+        if ap_auth != config['authentication']:
+            print("Bad auth: ", ap_auth, " - ", config['authentication'])
             return False
 
     return True
@@ -129,7 +134,7 @@ def sniffAP(p):
 
             if currentAP not in aps:    # This is an AP we haven't seen before
                 aps.add(currentAP)
-                if checkAP(bssid, channel, enc, apInfo["cipher"]):
+                if checkAP(bssid, channel, enc, apInfo["cipher"], apInfo["auth"]):
                     print(" GOOD ", currentAP)
 
                 else:
