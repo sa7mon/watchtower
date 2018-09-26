@@ -23,7 +23,6 @@ def noise_filter(addr1, addr2):
             return True
 
 
-# process unique sniffed Beacons and ProbeResponses.
 def sniffAP(pkt):
     if pkt.haslayer(Dot11):
 
