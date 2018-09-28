@@ -1,67 +1,58 @@
-#!/usr/bin/env python
-
-import sys, os, signal
-from multiprocessing import Process
-import json
-import random
-import time
 from scapy.all import *
-
-interface = ''  # monitor interface
-aps = set()  # dictionary to store unique APs
-
-# process unique sniffed Beacons and ProbeResponses.
-def sniffAP(p):
-    if p.haslayer(Dot11Deauth):
-
-        # p.show()
-        # ssid = p[Dot11Elt].info.decode('UTF-8')
-        # bssid = str(p[Dot11].addr3).upper()
-        # channel = int(ord(p[Dot11Elt:3].info))
-        # capability = p.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}\
-        #         {Dot11ProbeResp:%Dot11ProbeResp.cap%}")
-        sourceMAC = str(p[Dot11].addr2).upper()
-
-        print("Deauth detected from: ", sourceMAC)
+import time
 
 
-# Channel hopper
-def channel_hopper():
-    while True:
-        try:
-            channel = random.randrange(1, 13)
-            os.system("iw dev %s set channel %d" % (interface, channel))
-            time.sleep(1)
-        except KeyboardInterrupt:
-            break
+
+macs = [
+    "B0:39:56:0E:E8:14"
+]
+
+deauthAlertTimeout = 5  # How long (in seconds) minimum to wait between detected deauths to call it a new attack
+
+clients = set()
+deauthTimes = {}
+deauthAlertTimes = {}
+
+def noise_filter(addr1, addr2):
+    # Broadcast, broadcast, IPv6mcast, spanning tree, spanning tree, multicast, broadcast
+    ignore = ['ff:ff:ff:ff:ff:ff', '00:00:00:00:00:00', '33:33:00:', '33:33:ff:', '01:80:c2:00:00:00', '01:00:5e:'] # possibly add our detecting MAC address
+
+    for i in ignore:
+        if i in addr1 or i in addr2:
+            return True
+
+def packet_handler(pkt) :
+    # if packet has 802.11 layer
+    if pkt.haslayer(Dot11) and pkt.type == 2:
+        # do your stuff here
+        # types[pkt.type] = types[pkt.type]
+
+        if noise_filter(pkt.addr1, pkt.addr2):
+            return
 
 
-# Capture interrupt signal and cleanup before exiting
-def signal_handler(signal, frame):
-    p.terminate()
-    p.join()
+        if pkt.addr1.upper() in macs and pkt.addr2.upper() not in clients:
+            clients.add(pkt.addr2.upper())
+            print("AP", " ", pkt.addr2.upper())
+        elif pkt.addr2.upper() in macs and pkt.addr1.upper() not in clients:
+            clients.add(pkt.addr1.upper())
+            print(pkt.addr1.upper(), " ", "AP")
+        # else:
+        #     print(pkt.addr1.upper(), " ", pkt.addr2.upper())
+    elif pkt.haslayer(Dot11Deauth):
 
-    sys.exit(0)
+        sourceMAC = str(pkt[Dot11].addr2).upper()
 
+        if sourceMAC not in clients:  # We only care about our AP and clients
+            return
 
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage %s monitor_interface".format(sys.argv[0]))
-        sys.exit(1)
+        if sourceMAC in deauthTimes:
+            timeFromLastDeauth = time.time() - deauthTimes[sourceMAC]
+            if timeFromLastDeauth < 5:
+                if sourceMAC not in deauthAlertTimes or time.time() - deauthAlertTimes[sourceMAC] > deauthAlertTimeout:
+                    print("Deauth detected from: ", sourceMAC)
+                    # print(deauthTimes)
+                    deauthAlertTimes[sourceMAC] = time.time()
+        deauthTimes[sourceMAC] = time.time()
 
-    interface = sys.argv[1]
-
-    with open('config.json') as f:
-        config = json.load(f)
-
-    # Start the channel hopper
-    p = Process(target=channel_hopper)
-    p.start()
-
-    # Capture CTRL-C
-    signal.signal(signal.SIGINT, signal_handler)
-
-    print("\nSTATUS  CHAN ENC        MAC         SSID")
-    print("========================================")
-    # Start the sniffer
-    sniff(iface=interface, prn=sniffAP, store=0)
+sniff(iface="wlan0mon", prn=packet_handler) #  filter="type Data"
