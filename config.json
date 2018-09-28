@@ -13,5 +13,7 @@
     "checkEncryption": true,
     "checkCipher": true,
     "checkAuthentication": true
-  }
+  },
+  "slackWebhook": "",
+  "sendSlackNotify": true
 }
