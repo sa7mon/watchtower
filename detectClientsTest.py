@@ -53,6 +53,10 @@ def packet_handler(pkt) :
     elif pkt.haslayer(Dot11Deauth):
 
         sourceMAC = str(pkt[Dot11].addr2).upper()
+
+        if sourceMAC not in clients:  # We only care about our AP and clients
+            return
+
         if sourceMAC in deauthTimes:
             timeFromLastDeauth = time.time() - deauthTimes[sourceMAC]
             if timeFromLastDeauth < 5:
