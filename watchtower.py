@@ -3,6 +3,7 @@
 import sys, os, signal
 from multiprocessing import Process
 import json
+import requests
 from scapy.all import *
 
 interface = ''  # monitor interface
@@ -109,6 +110,18 @@ def getWPA2info(pkt):
     }
 
 
+def sendSlackNotification(message):
+    response = requests.post(
+        config['slackWebhook'], json={"text":message},
+        headers={'Content-Type': 'application/json'}
+    )
+    if response.status_code != 200:
+        raise ValueError(
+            'Request to slack returned an error %s, the response is:\n%s'
+            % (response.status_code, response.text)
+        )
+
+
 def sniffAP(pkt):
 
     # Look for clients of our network
@@ -135,8 +148,10 @@ def sniffAP(pkt):
             timeFromLastDeauth = time.time() - deauthTimes[sourceMAC]
             if timeFromLastDeauth < 5:
                 if sourceMAC not in deauthAlertTimes or time.time() - deauthAlertTimes[sourceMAC] > deauthAlertTimeout:
-                    print("Deauth detected! Targeted client: ", sourceMAC)
-                    # print(deauthTimes)
+                    print("Deauth detected! Targeted client: " + sourceMAC)
+                    if config['sendSlackNotify']:
+                        sendSlackNotification(":rotating_light: Deauth attack detected! Targeted client: " + sourceMAC)
+
                     deauthAlertTimes[sourceMAC] = time.time()
         deauthTimes[sourceMAC] = time.time()
 
@@ -183,7 +198,14 @@ def sniffAP(pkt):
 
                 else:
                     print("  BAD ", currentAP)
-
+                    if config['sendSlackNotify']:
+                        sendSlackNotification(":rotating_light: Rogue AP detected! :rotating_light: \n *Channel*: " + str(int(channel)) +
+                                              "\n *Privacy*: " + priv +
+                                              "\n *Encryption*: " + enc +
+                                              "\n *Cipher*: " + apInfo['cipher'] +
+                                              "\n *Authentication*: " + apInfo["auth"] +
+                                              "\n *MAC*: " + bssid +
+                                              "\n *SSID*: " + ssid)
 
 # Channel hopper
 def channel_hopper():
