@@ -63,11 +63,13 @@ def getWPA2info(pkt):
     # 00-0F-AC-02 TKIP
 
     # OUI = [2:4]
-    groupCipherOUI = pkt.info[2:5]
+    # groupCipherOUI = pkt.info[2:5]
+    groupCipherOUI = pkt.group_cipher_suite.oui
 
     # Group Cipher Type = [5]
     # 1 = WEP40, 2 = TKIP, 4 = CCMP, 5 = WEP104
-    groupCipherType = pkt.info[5]
+    # groupCipherType = pkt.info[5]
+    groupCipherType = pkt.group_cipher_suite.cipher
 
     if groupCipherType == 1:
         cipher = "WEP40"
@@ -87,18 +89,31 @@ def getWPA2info(pkt):
     # pairwiseCipherOUI =
 
     # AuthKey Mngmnt Count = [12:13]
-    authKeyMgmtCount = pkt.info[12]
+    # authKeyMgmtCount = pkt.info[12]
+    authKeyMgmtCount = pkt.nb_akm_suites
 
     # AuthKey Mngmnt Suite List = [14:17]
     # 00-0f-ac-02  PSK
     # 00-0f-ac-01  802.1x (EAP)
-    authKeyMgmtSuite = pkt.info[14:18]
+    # authKeyMgmtSuite = pkt.info[14:18]
+
+    # print("authKeyMgmtSuite: ", pkt.akm_suites[1])
+
+    for item in pkt.akm_suites:
+        print("item" - item)
+
     if authKeyMgmtSuite == b'\x00\x0f\xac\x02':
         auth = "PSK"
     elif authKeyMgmtSuite == b'\x00\x0f\xac\x01':
         auth = "EAP"
     else:
         auth = "???"
+
+
+    # DEBUG
+    if cipher == '???' or auth == '???':
+        print("Unknown cipher or auth.")
+        pkt.show()
 
     return {
         "groupCipherOUI": groupCipherOUI,
@@ -158,11 +173,14 @@ def sniffAP(pkt):
 
     # process unique sniffed Beacons and ProbeResponses.
     if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
+        if pkt.haslayer(Dot11FCS):
+            bssid = str(pkt[Dot11FCS].addr3).upper()
+        else:
+            bssid = str(pkt[Dot11].addr3).upper()
         ssid = pkt[Dot11Elt].info.decode('UTF-8')
-        bssid = str(pkt[Dot11].addr3).upper()
         channel = int(ord(pkt[Dot11Elt:3].info))
         capability = pkt.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}\
-                {Dot11ProbeResp:%Dot11ProbeResp.cap%}")
+                    {Dot11ProbeResp:%Dot11ProbeResp.cap%}")
 
         # Check for encrypted networks
         if re.search("privacy", capability):
