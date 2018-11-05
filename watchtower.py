@@ -97,23 +97,25 @@ def getWPA2info(pkt):
     # 00-0f-ac-01  802.1x (EAP)
     # authKeyMgmtSuite = pkt.info[14:18]
 
-    # print("authKeyMgmtSuite: ", pkt.akm_suites[1])
 
-    for item in pkt.akm_suites:
-        print("item" - item)
-
-    if authKeyMgmtSuite == b'\x00\x0f\xac\x02':
+    if pkt.akm_suites[0].suite == 2:
         auth = "PSK"
-    elif authKeyMgmtSuite == b'\x00\x0f\xac\x01':
+        authKeyMgmtSuite = b'\x00\x0f\xac\x02'
+    elif pkt.akm_suites[0].suite == 1:
         auth = "EAP"
+        authKeyMgmtSuite = b'\x00\x0f\xac\x01'
+    elif pkt.akm_suites[0].suite == 0:
+        auth = "RESERVED"
+        authKeyMgmtSuite = "???"
     else:
         auth = "???"
+        authKeyMgmtSuite = "???"
 
 
     # DEBUG
     if cipher == '???' or auth == '???':
         print("Unknown cipher or auth.")
-        pkt.show()
+        # pkt.show()
 
     return {
         "groupCipherOUI": groupCipherOUI,
