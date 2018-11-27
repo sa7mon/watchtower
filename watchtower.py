@@ -115,7 +115,6 @@ def getWPA2info(pkt):
     # 00-0f-ac-01  802.1x (EAP)
     # authKeyMgmtSuite = pkt.info[14:18]
 
-
     if pkt.akm_suites[0].suite == 2:
         auth = "PSK"
         authKeyMgmtSuite = b'\x00\x0f\xac\x02'
@@ -203,7 +202,7 @@ def sniffAP(pkt):
         strength = pkt[RadioTap].dBm_AntSignal
 
         # DEBUG
-        print('strength: ', strength)
+        # print('strength: ', strength)
 
         # Check for encrypted networks
         if re.search("privacy", capability):
@@ -236,7 +235,6 @@ def sniffAP(pkt):
                 aps.add(currentAP)
                 if checkAP(bssid, channel, enc, apInfo["cipher"], apInfo["auth"]):
                     print(" GOOD ", currentAP)
-                    pkt.show()
                 else:
                     print("  BAD ", currentAP)
                     if config['sendSlackNotify']:
@@ -272,6 +270,7 @@ def tune(pkt):
             apSignals[bssid]['count'] += 1
             old_avg = apSignals[bssid]['avgStrength']
             new_avg = ( (old_avg * (apSignals[bssid]['count']-1)) + strength ) / apSignals[bssid]['count']
+            new_avg = int(round(new_avg))
             apSignals[bssid]['avgStrength'] = new_avg
             if old_avg != new_avg:
                 print('Avg for', bssid, 'changed to: ', str(new_avg))

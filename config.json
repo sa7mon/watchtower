@@ -7,11 +7,14 @@
   "encryption": "WPA2",
   "cipher": "CCMP",
   "authentication": "PSK",
+  "signalStrength": -42,
+  "strengthVariance": 5,
   "checks": {
     "checkMAC": true,
     "checkChannel": true,
     "checkEncryption": true,
     "checkCipher": true,
-    "checkAuthentication": true
+    "checkAuthentication": true,
+    "checkStrength": true
   }
 }
