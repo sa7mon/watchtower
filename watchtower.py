@@ -5,10 +5,28 @@ from multiprocessing import Process
 import json
 import requests
 from scapy.all import *
+import argparse
+
+
+parser = argparse.ArgumentParser(description="WatchTower - Detect Rogue APs", prog='watchtower')
+parser.add_argument('--tune', required=False, dest='tune', action='store_true',
+                    help='Collect samples of average signal strength from each AP')
+parser.add_argument('adapter', help='Name of wireless adapter in promiscuous mode')
+
+parser.set_defaults(tune=False)
+
+args = parser.parse_args()
+
+#####################
+#
+#  Global Variables
+#
+#####################
 
 interface = ''  # monitor interface
 aps = set()  # dictionary to store unique APs
 clients = set()
+apSignals = {}  # For --tune mode
 deauthTimes = {}
 deauthAlertTimes = {}
 deauthAlertTimeout = 5  # How long (in seconds) minimum to wait between detected deauths to call it a new attack
@@ -115,7 +133,6 @@ def getWPA2info(pkt):
     # DEBUG
     if cipher == '???' or auth == '???':
         print("Unknown cipher or auth.")
-        # pkt.show()
 
     return {
         "groupCipherOUI": groupCipherOUI,
@@ -183,6 +200,10 @@ def sniffAP(pkt):
         channel = int(ord(pkt[Dot11Elt:3].info))
         capability = pkt.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}\
                     {Dot11ProbeResp:%Dot11ProbeResp.cap%}")
+        strength = pkt[RadioTap].dBm_AntSignal
+
+        # DEBUG
+        print('strength: ', strength)
 
         # Check for encrypted networks
         if re.search("privacy", capability):
@@ -215,7 +236,7 @@ def sniffAP(pkt):
                 aps.add(currentAP)
                 if checkAP(bssid, channel, enc, apInfo["cipher"], apInfo["auth"]):
                     print(" GOOD ", currentAP)
-
+                    pkt.show()
                 else:
                     print("  BAD ", currentAP)
                     if config['sendSlackNotify']:
@@ -226,6 +247,39 @@ def sniffAP(pkt):
                                               "\n *Authentication*: " + apInfo["auth"] +
                                               "\n *MAC*: " + bssid +
                                               "\n *SSID*: " + ssid)
+
+
+def tune(pkt):
+    bssid, ssid, channel, strength = '', '', '', ''
+
+    if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
+        if pkt.haslayer(Dot11FCS):
+            bssid = str(pkt[Dot11FCS].addr3).upper()
+        else:
+            bssid = str(pkt[Dot11].addr3).upper()
+        ssid = pkt[Dot11Elt].info.decode('UTF-8')
+        channel = int(ord(pkt[Dot11Elt:3].info))
+        strength = pkt[RadioTap].dBm_AntSignal
+    if bssid not in config['macs']:
+        return
+
+    if strength != '':
+        # print(type(strength), strength)
+        # Check if AP already has signal measurement
+        if bssid in apSignals:
+            # https://math.stackexchange.com/questions/106313/regular-average-calculated-accumulatively
+
+            apSignals[bssid]['count'] += 1
+            old_avg = apSignals[bssid]['avgStrength']
+            new_avg = ( (old_avg * (apSignals[bssid]['count']-1)) + strength ) / apSignals[bssid]['count']
+            apSignals[bssid]['avgStrength'] = new_avg
+            if old_avg != new_avg:
+                print('Avg for', bssid, 'changed to: ', str(new_avg))
+        else:
+            apSignals[bssid] = {}
+            apSignals[bssid]['count'] = 0
+            apSignals[bssid]['avgStrength'] = 0
+
 
 # Channel hopper
 def channel_hopper():
@@ -247,11 +301,6 @@ def signal_handler(signal, frame):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage %s monitor_interface".format(sys.argv[0]))
-        sys.exit(1)
-
-    interface = sys.argv[1]
 
     with open('config.json') as f:
         config = json.load(f)
@@ -263,7 +312,8 @@ if __name__ == "__main__":
     # Capture CTRL-C
     signal.signal(signal.SIGINT, signal_handler)
 
-    # print("\nSTATUS CHAN PRIV ENC   CIPHER  AUTH        MAC               SSID")
-    # print("====================================================")
     # Start the sniffer
-    sniff(iface=interface, prn=sniffAP, store=0)
+    if args.tune:
+        sniff(iface=args.adapter, prn=tune, store=0)
+    else:
+        sniff(iface=args.adapter, prn=sniffAP, store=0)
