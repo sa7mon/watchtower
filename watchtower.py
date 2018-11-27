@@ -146,11 +146,11 @@ def sniffAP(pkt):
 
         if sourceMAC in deauthTimes:
             timeFromLastDeauth = time.time() - deauthTimes[sourceMAC]
-            if timeFromLastDeauth < 5:
+            if timeFromLastDeauth < 2:
                 if sourceMAC not in deauthAlertTimes or time.time() - deauthAlertTimes[sourceMAC] > deauthAlertTimeout:
                     print("Deauth detected! Targeted client: " + sourceMAC)
                     if config['sendSlackNotify']:
-                        sendSlackNotification(":rotating_light: Deauth attack detected! Targeted client: " + sourceMAC)
+                        sendSlackNotification(":rotating_light: Deauth attack detected! :rotating_light: Targeted client: " + sourceMAC)
 
                     deauthAlertTimes[sourceMAC] = time.time()
         deauthTimes[sourceMAC] = time.time()
