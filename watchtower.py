@@ -6,6 +6,7 @@ import json
 import requests
 from scapy.all import *
 import argparse
+import csv
 
 
 parser = argparse.ArgumentParser(description="WatchTower - Detect Rogue APs", prog='watchtower')
@@ -30,7 +31,7 @@ apSignals = {}  # For --tune mode
 deauthTimes = {}
 deauthAlertTimes = {}
 deauthAlertTimeout = 5  # How long (in seconds) minimum to wait between detected deauths to call it a new attack
-
+macVendors = {}
 
 def checkAP(ap_mac, ap_channel, ap_enc, ap_cipher, ap_auth, ap_strength):
     if config['checks']['checkMAC']:
@@ -207,9 +208,6 @@ def sniffAP(pkt):
                     {Dot11ProbeResp:%Dot11ProbeResp.cap%}")
         strength = pkt[RadioTap].dBm_AntSignal
 
-        # DEBUG
-        # print('strength: ', strength)
-
         # Check for encrypted networks
         if re.search("privacy", capability):
             priv = 'Y'
@@ -244,7 +242,7 @@ def sniffAP(pkt):
                 if checkAP(bssid, channel, enc, apInfo["cipher"], apInfo["auth"], strength):
                     print("[New AP] GOOD ", currentAP)
                 else:
-                    print("[New AP]  BAD ", currentAP)
+                    print("[New AP]  !BAD! ", currentAP)
                     if config['sendSlackNotify']:
                         sendSlackNotification(":rotating_light: Rogue AP detected! :rotating_light: \n *Channel*: " + str(int(channel)) +
                                               "\n *Privacy*: " + priv +
@@ -311,6 +309,12 @@ if __name__ == "__main__":
 
     with open('config.json') as f:
         config = json.load(f)
+
+    with open('oui.csv') as csvfile:
+        macreader = csv.reader(csvfile, delimiter=',', quotechar='"')
+        i = 0
+        for row in macreader:
+            macVendors[row[1]] = row[2]
 
     # Start the channel hopper
     p = Process(target=channel_hopper)
