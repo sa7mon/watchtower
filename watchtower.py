@@ -33,6 +33,7 @@ deauthAlertTimes = {}
 deauthAlertTimeout = 5  # How long (in seconds) minimum to wait between detected deauths to call it a new attack
 macVendors = {}
 
+
 def checkAP(ap_mac, ap_channel, ap_enc, ap_cipher, ap_auth, ap_strength):
     if config['checks']['checkMAC']:
         if ap_mac.upper() not in config['macs']:
@@ -171,10 +172,8 @@ def sniffAP(pkt):
 
         if pkt.addr1.upper() in config['macs'] and pkt.addr2.upper() not in clients:
             clients.add(pkt.addr2.upper())
-            # print("AP", " ", pkt.addr2.upper())
         elif pkt.addr2.upper() in config['macs'] and pkt.addr1.upper() not in clients:
             clients.add(pkt.addr1.upper())
-            # print(pkt.addr1.upper(), " ", "AP")
 
     # Watch for deauth-ing of our clients
     elif pkt.haslayer(Dot11Deauth):
@@ -319,15 +318,25 @@ if __name__ == "__main__":
         for row in macreader:
             macVendors[row[1]] = row[2]
 
-    # Start the channel hopper
-    p = Process(target=channel_hopper)
-    # p.start()
+    interface = args.adapter
+
+    if config['checks']['checkChannel']:
+        # Start the channel hopper
+        print("[*] Starting channel hopper process...")
+        p = Process(target=channel_hopper)
+        p.start()
+    else:
+        # Change adapter channel to expected channel
+        print("[*] Locking adapter to channel", str(config['channel']))
+        os.system("iw dev %s set channel %d" % (args.adapter, config['channel']))
 
     # Capture CTRL-C
     signal.signal(signal.SIGINT, signal_handler)
 
     # Start the sniffer
     if args.tune:
+        print("[*] Starting tuning sniff...\n")
         sniff(iface=args.adapter, prn=tune, store=0)
     else:
+        print("[*] Starting regular sniff...\n")
         sniff(iface=args.adapter, prn=sniffAP, store=0)
