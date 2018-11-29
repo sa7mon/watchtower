@@ -6,6 +6,7 @@ import json
 import requests
 from scapy.all import *
 import argparse
+import csv
 
 
 parser = argparse.ArgumentParser(description="WatchTower - Detect Rogue APs", prog='watchtower')
@@ -30,9 +31,9 @@ apSignals = {}  # For --tune mode
 deauthTimes = {}
 deauthAlertTimes = {}
 deauthAlertTimeout = 5  # How long (in seconds) minimum to wait between detected deauths to call it a new attack
+macVendors = {}
 
-
-def checkAP(ap_mac, ap_channel, ap_enc, ap_cipher, ap_auth):
+def checkAP(ap_mac, ap_channel, ap_enc, ap_cipher, ap_auth, ap_strength):
     if config['checks']['checkMAC']:
         if ap_mac.upper() not in config['macs']:
             return False
@@ -55,6 +56,12 @@ def checkAP(ap_mac, ap_channel, ap_enc, ap_cipher, ap_auth):
     if config['checks']['checkAuthentication']:
         if ap_auth != config['authentication']:
             print("Bad auth: ", ap_auth, " - ", config['authentication'])
+            return False
+
+    if config['checks']['checkStrength']:
+        upper = config['signalStrength'] + config['strengthVariance']
+        lower = config['signalStrength'] - config['strengthVariance']
+        if ap_strength < lower or ap_strength > upper:
             return False
 
     return True
@@ -201,9 +208,6 @@ def sniffAP(pkt):
                     {Dot11ProbeResp:%Dot11ProbeResp.cap%}")
         strength = pkt[RadioTap].dBm_AntSignal
 
-        # DEBUG
-        # print('strength: ', strength)
-
         # Check for encrypted networks
         if re.search("privacy", capability):
             priv = 'Y'
@@ -233,10 +237,14 @@ def sniffAP(pkt):
 
             if currentAP not in aps:    # This is an AP we haven't seen before
                 aps.add(currentAP)
-                if checkAP(bssid, channel, enc, apInfo["cipher"], apInfo["auth"]):
-                    print(" GOOD ", currentAP)
+                currentAP = " {:>2d}   {:s}   {:s}  {:s}    {:s}  {:s}  {:s}  {:s}".format(
+                    int(channel), priv, enc, apInfo["cipher"], apInfo["auth"], str(strength), bssid, ssid)
+                if checkAP(bssid, channel, enc, apInfo["cipher"], apInfo["auth"], strength):
+                    print("[New AP] GOOD ", currentAP)
                 else:
-                    print("  BAD ", currentAP)
+                    print("[New AP]  !BAD! ", currentAP)
+                    vendor = macVendors[bssid[0:8].replace(':', '')]
+                    print("[Bad AP] Manufacturer: ", vendor)
                     if config['sendSlackNotify']:
                         sendSlackNotification(":rotating_light: Rogue AP detected! :rotating_light: \n *Channel*: " + str(int(channel)) +
                                               "\n *Privacy*: " + priv +
@@ -244,7 +252,8 @@ def sniffAP(pkt):
                                               "\n *Cipher*: " + apInfo['cipher'] +
                                               "\n *Authentication*: " + apInfo["auth"] +
                                               "\n *MAC*: " + bssid +
-                                              "\n *SSID*: " + ssid)
+                                              "\n *SSID*: " + ssid +
+                                              "\n *Vendor*: " + vendor)
 
 
 def tune(pkt):
@@ -303,6 +312,12 @@ if __name__ == "__main__":
 
     with open('config.json') as f:
         config = json.load(f)
+
+    with open('oui.csv') as csvfile:
+        macreader = csv.reader(csvfile, delimiter=',', quotechar='"')
+        i = 0
+        for row in macreader:
+            macVendors[row[1]] = row[2]
 
     # Start the channel hopper
     p = Process(target=channel_hopper)

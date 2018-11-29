@@ -7,7 +7,7 @@
   "encryption": "WPA2",
   "cipher": "CCMP",
   "authentication": "PSK",
-  "signalStrength": -42,
+  "signalStrength": -35,
   "strengthVariance": 5,
   "checks": {
     "checkMAC": true,
@@ -16,5 +16,7 @@
     "checkCipher": true,
     "checkAuthentication": true,
     "checkStrength": true
-  }
+  },
+  "slackWebhook": "",
+  "sendSlackNotify": false
 }
