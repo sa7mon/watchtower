@@ -231,19 +231,19 @@ def sniffAP(pkt):
             else:
                 apInfo = {}
 
-            currentAP = " {:>2d}   {:s}   {:s}  {:s}    {:s}  {:s}  {:s}".format(
+            currentAP = "{:>2d}   {:s}   {:s}  {:s}    {:s}  {:s}  {:s}".format(
                 int(channel), priv, enc, apInfo["cipher"], apInfo["auth"], bssid, ssid)
 
             if currentAP not in aps:    # This is an AP we haven't seen before
                 aps.add(currentAP)
-                currentAP = " {:>2d}   {:s}   {:s}  {:s}    {:s}  {:s}  {:s}  {:s}".format(
+                currentAP = "{:>2d}   {:s}   {:s}  {:s}    {:s}  {:s}  {:s}  {:s}".format(
                     int(channel), priv, enc, apInfo["cipher"], apInfo["auth"], str(strength), bssid, ssid)
                 if checkAP(bssid, channel, enc, apInfo["cipher"], apInfo["auth"], strength):
-                    print("[New AP] GOOD ", currentAP)
+                    print("[Good AP] ", currentAP)
                 else:
-                    print("[New AP]  !BAD! ", currentAP)
+                    print("[Bad  AP] ", currentAP)
                     vendor = macVendors[bssid[0:8].replace(':', '')]
-                    print("[Bad AP] Manufacturer: ", vendor)
+                    print("[Bad  AP] Manufacturer: ", vendor)
                     if config['sendSlackNotify']:
                         sendSlackNotification(":rotating_light: Rogue AP detected! :rotating_light: \n *Channel*: " + str(int(channel)) +
                                               "\n *Privacy*: " + priv +
