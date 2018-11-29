@@ -5,16 +5,36 @@ from multiprocessing import Process
 import json
 import requests
 from scapy.all import *
+import argparse
+import csv
+
+
+parser = argparse.ArgumentParser(description="WatchTower - Detect Rogue APs", prog='watchtower')
+parser.add_argument('--tune', required=False, dest='tune', action='store_true',
+                    help='Collect samples of average signal strength from each AP')
+parser.add_argument('adapter', help='Name of wireless adapter in promiscuous mode')
+
+parser.set_defaults(tune=False)
+
+args = parser.parse_args()
+
+#####################
+#
+#  Global Variables
+#
+#####################
 
 interface = ''  # monitor interface
 aps = set()  # dictionary to store unique APs
 clients = set()
+apSignals = {}  # For --tune mode
 deauthTimes = {}
 deauthAlertTimes = {}
 deauthAlertTimeout = 5  # How long (in seconds) minimum to wait between detected deauths to call it a new attack
+macVendors = {}
 
 
-def checkAP(ap_mac, ap_channel, ap_enc, ap_cipher, ap_auth):
+def checkAP(ap_mac, ap_channel, ap_enc, ap_cipher, ap_auth, ap_strength):
     if config['checks']['checkMAC']:
         if ap_mac.upper() not in config['macs']:
             return False
@@ -37,6 +57,12 @@ def checkAP(ap_mac, ap_channel, ap_enc, ap_cipher, ap_auth):
     if config['checks']['checkAuthentication']:
         if ap_auth != config['authentication']:
             print("Bad auth: ", ap_auth, " - ", config['authentication'])
+            return False
+
+    if config['checks']['checkStrength']:
+        upper = config['signalStrength'] + config['strengthVariance']
+        lower = config['signalStrength'] - config['strengthVariance']
+        if ap_strength < lower or ap_strength > upper:
             return False
 
     return True
@@ -63,11 +89,13 @@ def getWPA2info(pkt):
     # 00-0F-AC-02 TKIP
 
     # OUI = [2:4]
-    groupCipherOUI = pkt.info[2:5]
+    # groupCipherOUI = pkt.info[2:5]
+    groupCipherOUI = pkt.group_cipher_suite.oui
 
     # Group Cipher Type = [5]
     # 1 = WEP40, 2 = TKIP, 4 = CCMP, 5 = WEP104
-    groupCipherType = pkt.info[5]
+    # groupCipherType = pkt.info[5]
+    groupCipherType = pkt.group_cipher_suite.cipher
 
     if groupCipherType == 1:
         cipher = "WEP40"
@@ -87,18 +115,31 @@ def getWPA2info(pkt):
     # pairwiseCipherOUI =
 
     # AuthKey Mngmnt Count = [12:13]
-    authKeyMgmtCount = pkt.info[12]
+    # authKeyMgmtCount = pkt.info[12]
+    authKeyMgmtCount = pkt.nb_akm_suites
 
     # AuthKey Mngmnt Suite List = [14:17]
     # 00-0f-ac-02  PSK
     # 00-0f-ac-01  802.1x (EAP)
-    authKeyMgmtSuite = pkt.info[14:18]
-    if authKeyMgmtSuite == b'\x00\x0f\xac\x02':
+    # authKeyMgmtSuite = pkt.info[14:18]
+
+    if pkt.akm_suites[0].suite == 2:
         auth = "PSK"
-    elif authKeyMgmtSuite == b'\x00\x0f\xac\x01':
+        authKeyMgmtSuite = b'\x00\x0f\xac\x02'
+    elif pkt.akm_suites[0].suite == 1:
         auth = "EAP"
+        authKeyMgmtSuite = b'\x00\x0f\xac\x01'
+    elif pkt.akm_suites[0].suite == 0:
+        auth = "RESERVED"
+        authKeyMgmtSuite = "???"
     else:
         auth = "???"
+        authKeyMgmtSuite = "???"
+
+
+    # DEBUG
+    if cipher == '???' or auth == '???':
+        print("Unknown cipher or auth.")
 
     return {
         "groupCipherOUI": groupCipherOUI,
@@ -131,10 +172,8 @@ def sniffAP(pkt):
 
         if pkt.addr1.upper() in config['macs'] and pkt.addr2.upper() not in clients:
             clients.add(pkt.addr2.upper())
-            # print("AP", " ", pkt.addr2.upper())
         elif pkt.addr2.upper() in config['macs'] and pkt.addr1.upper() not in clients:
             clients.add(pkt.addr1.upper())
-            # print(pkt.addr1.upper(), " ", "AP")
 
     # Watch for deauth-ing of our clients
     elif pkt.haslayer(Dot11Deauth):
@@ -158,11 +197,15 @@ def sniffAP(pkt):
 
     # process unique sniffed Beacons and ProbeResponses.
     if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
+        if pkt.haslayer(Dot11FCS):
+            bssid = str(pkt[Dot11FCS].addr3).upper()
+        else:
+            bssid = str(pkt[Dot11].addr3).upper()
         ssid = pkt[Dot11Elt].info.decode('UTF-8')
-        bssid = str(pkt[Dot11].addr3).upper()
         channel = int(ord(pkt[Dot11Elt:3].info))
         capability = pkt.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}\
-                {Dot11ProbeResp:%Dot11ProbeResp.cap%}")
+                    {Dot11ProbeResp:%Dot11ProbeResp.cap%}")
+        strength = pkt[RadioTap].dBm_AntSignal
 
         # Check for encrypted networks
         if re.search("privacy", capability):
@@ -188,16 +231,19 @@ def sniffAP(pkt):
             else:
                 apInfo = {}
 
-            currentAP = " {:>2d}   {:s}   {:s}  {:s}    {:s}  {:s}  {:s}".format(
+            currentAP = "{:>2d}   {:s}   {:s}  {:s}    {:s}  {:s}  {:s}".format(
                 int(channel), priv, enc, apInfo["cipher"], apInfo["auth"], bssid, ssid)
 
             if currentAP not in aps:    # This is an AP we haven't seen before
                 aps.add(currentAP)
-                if checkAP(bssid, channel, enc, apInfo["cipher"], apInfo["auth"]):
-                    print(" GOOD ", currentAP)
-
+                currentAP = "{:>2d}   {:s}   {:s}  {:s}    {:s}  {:s}  {:s}  {:s}".format(
+                    int(channel), priv, enc, apInfo["cipher"], apInfo["auth"], str(strength), bssid, ssid)
+                if checkAP(bssid, channel, enc, apInfo["cipher"], apInfo["auth"], strength):
+                    print("[Good AP] ", currentAP)
                 else:
-                    print("  BAD ", currentAP)
+                    print("[Bad  AP] ", currentAP)
+                    vendor = macVendors[bssid[0:8].replace(':', '')]
+                    print("[Bad  AP] Manufacturer: ", vendor)
                     if config['sendSlackNotify']:
                         sendSlackNotification(":rotating_light: Rogue AP detected! :rotating_light: \n *Channel*: " + str(int(channel)) +
                                               "\n *Privacy*: " + priv +
@@ -205,7 +251,42 @@ def sniffAP(pkt):
                                               "\n *Cipher*: " + apInfo['cipher'] +
                                               "\n *Authentication*: " + apInfo["auth"] +
                                               "\n *MAC*: " + bssid +
-                                              "\n *SSID*: " + ssid)
+                                              "\n *SSID*: " + ssid +
+                                              "\n *Vendor*: " + vendor)
+
+
+def tune(pkt):
+    bssid, ssid, channel, strength = '', '', '', ''
+
+    if pkt.haslayer(Dot11Beacon) or pkt.haslayer(Dot11ProbeResp):
+        if pkt.haslayer(Dot11FCS):
+            bssid = str(pkt[Dot11FCS].addr3).upper()
+        else:
+            bssid = str(pkt[Dot11].addr3).upper()
+        ssid = pkt[Dot11Elt].info.decode('UTF-8')
+        channel = int(ord(pkt[Dot11Elt:3].info))
+        strength = pkt[RadioTap].dBm_AntSignal
+    if bssid not in config['macs']:
+        return
+
+    if strength != '':
+        # print(type(strength), strength)
+        # Check if AP already has signal measurement
+        if bssid in apSignals:
+            # https://math.stackexchange.com/questions/106313/regular-average-calculated-accumulatively
+
+            apSignals[bssid]['count'] += 1
+            old_avg = apSignals[bssid]['avgStrength']
+            new_avg = ( (old_avg * (apSignals[bssid]['count']-1)) + strength ) / apSignals[bssid]['count']
+            new_avg = int(round(new_avg))
+            apSignals[bssid]['avgStrength'] = new_avg
+            if old_avg != new_avg:
+                print('Avg for', bssid, 'changed to: ', str(new_avg))
+        else:
+            apSignals[bssid] = {}
+            apSignals[bssid]['count'] = 0
+            apSignals[bssid]['avgStrength'] = 0
+
 
 # Channel hopper
 def channel_hopper():
@@ -227,23 +308,35 @@ def signal_handler(signal, frame):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage %s monitor_interface".format(sys.argv[0]))
-        sys.exit(1)
-
-    interface = sys.argv[1]
 
     with open('config.json') as f:
         config = json.load(f)
 
-    # Start the channel hopper
-    p = Process(target=channel_hopper)
-    # p.start()
+    with open('oui.csv') as csvfile:
+        macreader = csv.reader(csvfile, delimiter=',', quotechar='"')
+        i = 0
+        for row in macreader:
+            macVendors[row[1]] = row[2]
+
+    interface = args.adapter
+
+    if config['checks']['checkChannel']:
+        # Start the channel hopper
+        print("[*] Starting channel hopper process...")
+        p = Process(target=channel_hopper)
+        p.start()
+    else:
+        # Change adapter channel to expected channel
+        print("[*] Locking adapter to channel", str(config['channel']))
+        os.system("iw dev %s set channel %d" % (args.adapter, config['channel']))
 
     # Capture CTRL-C
     signal.signal(signal.SIGINT, signal_handler)
 
-    # print("\nSTATUS CHAN PRIV ENC   CIPHER  AUTH        MAC               SSID")
-    # print("====================================================")
     # Start the sniffer
-    sniff(iface=interface, prn=sniffAP, store=0)
+    if args.tune:
+        print("[*] Starting tuning sniff...\n")
+        sniff(iface=args.adapter, prn=tune, store=0)
+    else:
+        print("[*] Starting regular sniff...\n")
+        sniff(iface=args.adapter, prn=sniffAP, store=0)
