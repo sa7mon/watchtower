@@ -1,12 +1,15 @@
 # watchtower
 
 
-### Notifications
-* Alerts with Grafana
-* Pushbullet
-* Slack bot
-* IFTTT
+## Setup Instructions
 
+1. Clone project repo
+2. Create virtualenv
+3. Clone Scapy git repo
+4. `pip3 install scapy/`
+5. `pip3 install -r requirements.txt`
+6. `airmon-ng start wlan0` (where wlan0 is a WLAN adapter)
+7. `python3 ./watchtower`
 
 ## config.json documentation
 ```json
