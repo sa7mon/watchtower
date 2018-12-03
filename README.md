@@ -44,3 +44,6 @@ authType options:
 
 ## Known issues
 * In hostapd, if "wpa=" is set to 3 enabling both WPA and WPA2, we just detect it as WPA2
+
+## License
+Because this project is based off of the Airoscapy project by Peter Kacherginsky, WatchTower is licensed under the Creative Commons “Attribution-NonCommercial-ShareAlike 4.0 International” (CC BY-NC-SA 4.0) license . Airoscapy is released under this license which re-quires material built upon it to be released under the same.
