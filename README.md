@@ -1,11 +1,12 @@
 # watchtower
 
+WatchTower is a tool created to help detect both Rogue AP and Deauth attacks. It is in early stages of development and was developed initially to fulfill the requirements of my IT662 Data Communications and Networking class.
 
-## Setup Instructions
+## Setup
 
 1. Clone project repo
-2. Create virtualenv
-3. Clone Scapy git repo
+2. `virtualenv --python python3 venv`
+3. `git clone https://github.com/secdev/scapy.git`
 4. `pip3 install scapy/`
 5. `pip3 install -r requirements.txt`
 6. `airmon-ng start wlan0` (where wlan0 is a WLAN adapter)
