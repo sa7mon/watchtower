@@ -2,6 +2,8 @@
 
 WatchTower is a tool created to help detect both Rogue AP and Deauth attacks. It is in early stages of development and was developed initially to fulfill the requirements of my IT662 Data Communications and Networking class.
 
+[Slidedeck](https://slides.com/salmon/rogue-ap)
+
 ## Setup
 
 1. Clone project repo
