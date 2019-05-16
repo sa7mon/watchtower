@@ -4,6 +4,11 @@ WatchTower is a tool created to help detect both Rogue AP and Deauth attacks. It
 
 [Slidedeck](https://slides.com/salmon/rogue-ap)
 
+## Slack Alerts
+![watchtower2](https://user-images.githubusercontent.com/3712226/57883323-79715080-77eb-11e9-9d8f-4fea6fe04075.png)
+![watchtower1](https://user-images.githubusercontent.com/3712226/57883322-79715080-77eb-11e9-9dba-0915952d5a8a.png)
+
+
 ## Setup
 
 1. Clone project repo
